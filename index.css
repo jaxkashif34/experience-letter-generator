@@ -1,0 +1,9 @@
+/* In your global CSS file (e.g., ./src/index.css) */
+
+@media print {
+    /* KEY FIX: Forces background colors and images to be printed */
+    .print-container {
+        -webkit-print-color-adjust: exact !important; /* For Chrome/Safari */
+        color-adjust: exact !important; /* Standard property */
+    }
+}
