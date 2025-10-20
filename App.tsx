@@ -1,7 +1,12 @@
 import React, { useState, useRef } from "react";
 import { EditableField } from "./components/EditableField";
 import { CompanyLogo } from "./components/CompanyLogo";
-import { BoldIcon, PrintIcon } from "./components/Icons";
+import {
+  BoldIcon,
+  PrintIcon,
+  GithubIcon,
+  LinkedinIcon,
+} from "./components/Icons";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
@@ -21,8 +26,44 @@ interface LetterContent {
   companyEmail: string;
 }
 
+const AppFooter: React.FC = () => {
+  const AUTHOR_NAME = "Kashif Ali";
+  const GITHUB_LINK = "https://github.com/jaxkashif34";
+  const LINKEDIN_LINK = "https://linkedin.com/in/jaxkashif34";
+
+  return (
+    <footer className="w-full max-w-4xl mt-8 py-4 text-center text-gray-400 print:hidden">
+      <div className="flex flex-col items-center gap-2">
+        <p className="text-sm">
+          Made with ❤️ by{" "}
+          <span className="font-semibold text-gray-600">{AUTHOR_NAME}</span>
+        </p>
+        <div className="flex items-center gap-4">
+          <a
+            href={GITHUB_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="GitHub Profile"
+            className="text-gray-500 hover:text-[#282828] transition-colors"
+          >
+            <GithubIcon className="w-6 h-6" />
+          </a>
+          <a
+            href={LINKEDIN_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn Profile"
+            className="text-gray-500 hover:text-[#0077B5] transition-colors"
+          >
+            <LinkedinIcon className="w-6 h-6" />
+          </a>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
 const App: React.FC = () => {
-  const [signatureScale, setSignatureScale] = useState(1);
   const [letterContent, setLetterContent] = useState<LetterContent>({
     recipientName: "Kashif Ali",
     recipientTitle: "Lead Frontend Developer",
@@ -113,7 +154,6 @@ const App: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         handleContentChange("senderSignature", reader.result as string);
-        setSignatureScale(1); // Reset scale on new upload
       };
       reader.readAsDataURL(file);
     }
@@ -144,13 +184,211 @@ const App: React.FC = () => {
           Experience Letter Generator
         </h1>
         <p className="text-gray-600 mt-1">
-          Click on any text below to edit the content. You can also upload and
-          resize a signature image.
+          Click on any text below to edit the content. <code className="bg-[#ef782a] text-white text-sm font-medium rounded-md p-1">Ctrl + B</code> to bold, and choose your signature option: upload a digital signature or leave space for a manual one. When ready, save as a PDF.
         </p>
       </header>
 
       <div className="w-full max-w-4xl flex justify-end items-center gap-2 mb-4 print:hidden">
         <div className="flex items-center gap-2 mt-4 print:hidden">
+          {isEditing && (
+            <button
+              onClick={handleBoldClick}
+              onMouseDown={(e) => e.preventDefault()} // Prevents the editor from losing focus
+              className="px-3 py-1 text-sm font-medium rounded-md transition-colors bg-[#ef782a] text-white shadow"
+              aria-label="Bold"
+              title="Bold (Ctrl+B)"
+            >
+              <BoldIcon className="w-4 h-4" />
+            </button>
+          )}
+          <button
+            onClick={handleGeneratePdf}
+            id="pdf-button" // ID for hiding/showing
+            className={`px-3 py-1 text-sm font-medium rounded-md transition-colors bg-[#ef782a] text-white shadow`}
+          >
+            Save as PDF
+          </button>
+        </div>
+      </div>
+
+      <div className="relative">
+        <main
+          id="experience-letter-content"
+          ref={letterRef}
+          className="w-[210mm] h-[297mm] bg-white shadow-lg rounded-md overflow-hidden relative text-[#282828] print:shadow-none print:rounded-none"
+        >
+          {/* Decorative Shapes */}
+          <div className="absolute -top-32 -left-32 w-80 h-80 bg-gray-100 rounded-full opacity-50"></div>
+          <div className="absolute -bottom-40 -right-20 w-96 h-96 bg-[#ef782a] rounded-full z-10"></div>
+          <div className="absolute -bottom-48 -right-10 w-96 h-96 bg-[#282828] rounded-full z-0"></div>
+
+          <div className="relative z-20 p-16 h-full flex flex-col">
+            {/* Header */}
+            <header className="flex justify-between items-start border-b pb-8 border-gray-200">
+              <CompanyLogo
+                address={letterContent.companyAddress}
+                phone={letterContent.companyPhone}
+                email={letterContent.companyEmail}
+                onAddressChange={(val) =>
+                  handleContentChange("companyAddress", val)
+                }
+                onPhoneChange={(val) =>
+                  handleContentChange("companyPhone", val)
+                }
+                onEmailChange={(val) =>
+                  handleContentChange("companyEmail", val)
+                }
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
+              />
+            </header>
+
+            {/* Recipient & Date */}
+            <section className="flex justify-between items-start mt-12">
+              <div className="text-sm leading-relaxed">
+                <p className="font-bold">TO:</p>
+                <EditableField
+                  html={letterContent.recipientName}
+                  onChange={(val) => handleContentChange("recipientName", val)}
+                  className="font-bold text-base"
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+                <EditableField
+                  html={letterContent.recipientTitle}
+                  onChange={(val) => handleContentChange("recipientTitle", val)}
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+                <EditableField
+                  html={letterContent.recipientAddress}
+                  onChange={(val) =>
+                    handleContentChange("recipientAddress", val)
+                  }
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+              </div>
+              <div className="text-sm">
+                <EditableField
+                  html={letterContent.date}
+                  onChange={(val) => handleContentChange("date", val)}
+                  className="font-bold"
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+              </div>
+            </section>
+
+            <p className="mt-12 font-bold">
+              Dear{" "}
+              <EditableField
+                tagName="span"
+                html={letterContent.recipientName}
+                onChange={(val) => handleContentChange("recipientName", val)}
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
+              />
+              ,
+            </p>
+
+            {/* Body */}
+            <article className="mt-6 text-sm leading-7 space-y-4 flex-grow">
+              {letterContent.bodyParagraphs.map((p, i) => (
+                <EditableField
+                  key={i}
+                  tagName="p"
+                  html={p}
+                  onChange={(val) => handleParagraphChange(i, val)}
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+              ))}
+            </article>
+
+            {/* Footer/Signature */}
+            <footer className="mt-12">
+              <p>Regards,</p>
+
+              {signatureOption === "digital" ? (
+                <div
+                  className={`mt-2 h-16 w-48 cursor-pointer transition-colors ${
+                    !letterContent.senderSignature
+                      ? "border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50"
+                      : ""
+                  }`}
+                  onClick={() => signatureInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ")
+                      signatureInputRef.current?.click();
+                  }}
+                  aria-label={
+                    letterContent.senderSignature
+                      ? "Change signature image"
+                      : "Upload signature image"
+                  }
+                >
+                  <input
+                    type="file"
+                    ref={signatureInputRef}
+                    onChange={handleSignatureUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  {letterContent.senderSignature ? (
+                    <img
+                      src={letterContent.senderSignature}
+                      alt="Sender's signature"
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-gray-500 text-sm px-2 text-center">
+                      Click to upload signature
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-2 h-16 w-48 flex items-center justify-center">
+                  <span className="text-gray-500 text-sm px-2 text-center print:hidden italic"></span>
+                </div>
+              )}
+
+              <EditableField
+                html={letterContent.senderName}
+                onChange={(val) => handleContentChange("senderName", val)}
+                className="font-bold mt-2"
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
+              />
+              <EditableField
+                html={letterContent.senderTitle}
+                onChange={(val) => handleContentChange("senderTitle", val)}
+                className="text-sm"
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
+              />
+              <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+                <EditableField
+                  html={letterContent.senderPhone}
+                  onChange={(val) => handleContentChange("senderPhone", val)}
+                  className="m-0 p-0"
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+                <EditableField
+                  html={letterContent.senderEmail}
+                  onChange={(val) => handleContentChange("senderEmail", val)}
+                  className="m-0 p-0"
+                  onFocus={handleEditorFocus}
+                  onBlur={handleEditorBlur}
+                />
+              </div>
+            </footer>
+          </div>
+        </main>
+        <div className="flex absolute rotate-90 bottom-32 -left-40 gap-2 mt-4 print:hidden">
           <button
             onClick={() => setSignatureOption("digital")}
             className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
@@ -172,197 +410,9 @@ const App: React.FC = () => {
             Manual Signature
           </button>
         </div>
-        {isEditing && (
-          <button
-            onClick={handleBoldClick}
-            onMouseDown={(e) => e.preventDefault()} // Prevents the editor from losing focus
-            className="bg-gray-600 text-white font-bold p-2 rounded-lg hover:bg-gray-700 transition-all duration-200"
-            aria-label="Bold"
-            title="Bold (Ctrl+B)"
-          >
-            <BoldIcon className="w-6 h-6" />
-          </button>
-        )}
-        <button
-          onClick={handleGeneratePdf}
-          id="pdf-button" // ID for hiding/showing
-          className="bg-[#ef782a] text-white font-bold py-2 px-4 rounded-lg hover:bg-[#d86c26] transition-colors duration-300 flex items-center gap-2"
-        >
-          <PrintIcon />
-          Print / Save as PDF
-        </button>
       </div>
 
-      <main
-        id="experience-letter-content"
-        ref={letterRef}
-        className="w-[210mm] h-[297mm] bg-white shadow-lg rounded-md overflow-hidden relative text-[#282828] print:shadow-none print:rounded-none"
-      >
-        {/* Decorative Shapes */}
-        <div className="absolute -top-32 -left-32 w-80 h-80 bg-gray-100 rounded-full opacity-50"></div>
-        <div className="absolute -bottom-40 -right-20 w-96 h-96 bg-[#ef782a] rounded-full z-10"></div>
-        <div className="absolute -bottom-48 -right-10 w-96 h-96 bg-[#282828] rounded-full z-0"></div>
-
-        <div className="relative z-20 p-16 h-full flex flex-col">
-          {/* Header */}
-          <header className="flex justify-between items-start border-b pb-8 border-gray-200">
-            <CompanyLogo
-              address={letterContent.companyAddress}
-              phone={letterContent.companyPhone}
-              email={letterContent.companyEmail}
-              onAddressChange={(val) =>
-                handleContentChange("companyAddress", val)
-              }
-              onPhoneChange={(val) => handleContentChange("companyPhone", val)}
-              onEmailChange={(val) => handleContentChange("companyEmail", val)}
-              onFocus={handleEditorFocus}
-              onBlur={handleEditorBlur}
-            />
-          </header>
-
-          {/* Recipient & Date */}
-          <section className="flex justify-between items-start mt-12">
-            <div className="text-sm leading-relaxed">
-              <p className="font-bold">TO:</p>
-              <EditableField
-                html={letterContent.recipientName}
-                onChange={(val) => handleContentChange("recipientName", val)}
-                className="font-bold text-base"
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-              <EditableField
-                html={letterContent.recipientTitle}
-                onChange={(val) => handleContentChange("recipientTitle", val)}
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-              <EditableField
-                html={letterContent.recipientAddress}
-                onChange={(val) => handleContentChange("recipientAddress", val)}
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-            </div>
-            <div className="text-sm">
-              <EditableField
-                html={letterContent.date}
-                onChange={(val) => handleContentChange("date", val)}
-                className="font-bold"
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-            </div>
-          </section>
-
-          <p className="mt-12 font-bold">
-            Dear{" "}
-            <EditableField
-              tagName="span"
-              html={letterContent.recipientName}
-              onChange={(val) => handleContentChange("recipientName", val)}
-              onFocus={handleEditorFocus}
-              onBlur={handleEditorBlur}
-            />
-            ,
-          </p>
-
-          {/* Body */}
-          <article className="mt-6 text-sm leading-7 space-y-4 flex-grow">
-            {letterContent.bodyParagraphs.map((p, i) => (
-              <EditableField
-                key={i}
-                tagName="p"
-                html={p}
-                onChange={(val) => handleParagraphChange(i, val)}
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-            ))}
-          </article>
-
-          {/* Footer/Signature */}
-          <footer className="mt-12">
-            <p>Regards,</p>
-
-            {signatureOption === "digital" ? (
-              <div
-                className={`mt-2 h-16 w-48 cursor-pointer transition-colors ${
-                  !letterContent.senderSignature
-                    ? "border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50"
-                    : ""
-                }`}
-                onClick={() => signatureInputRef.current?.click()}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ")
-                    signatureInputRef.current?.click();
-                }}
-                aria-label={
-                  letterContent.senderSignature
-                    ? "Change signature image"
-                    : "Upload signature image"
-                }
-              >
-                <input
-                  type="file"
-                  ref={signatureInputRef}
-                  onChange={handleSignatureUpload}
-                  accept="image/*"
-                  className="hidden"
-                />
-                {letterContent.senderSignature ? (
-                  <img
-                    src={letterContent.senderSignature}
-                    alt="Sender's signature"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                ) : (
-                  <span className="text-gray-500 text-sm px-2 text-center">
-                    Click to upload signature
-                  </span>
-                )}
-              </div>
-            ) : (
-              <div className="mt-2 h-16 w-48 flex items-center justify-center">
-                <span className="text-gray-500 text-sm px-2 text-center print:hidden italic"></span>
-              </div>
-            )}
-
-            <EditableField
-              html={letterContent.senderName}
-              onChange={(val) => handleContentChange("senderName", val)}
-              className="font-bold mt-2"
-              onFocus={handleEditorFocus}
-              onBlur={handleEditorBlur}
-            />
-            <EditableField
-              html={letterContent.senderTitle}
-              onChange={(val) => handleContentChange("senderTitle", val)}
-              className="text-sm"
-              onFocus={handleEditorFocus}
-              onBlur={handleEditorBlur}
-            />
-            <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
-              <EditableField
-                html={letterContent.senderPhone}
-                onChange={(val) => handleContentChange("senderPhone", val)}
-                className="m-0 p-0"
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-              <EditableField
-                html={letterContent.senderEmail}
-                onChange={(val) => handleContentChange("senderEmail", val)}
-                className="m-0 p-0"
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-            </div>
-          </footer>
-        </div>
-      </main>
+      <AppFooter />
     </div>
   );
 };
