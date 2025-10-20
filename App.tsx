@@ -280,18 +280,6 @@ const App: React.FC = () => {
               </div>
             </section>
 
-            <p className="mt-12 font-bold">
-              Dear{" "}
-              <EditableField
-                tagName="span"
-                html={letterContent.recipientName}
-                onChange={(val) => handleContentChange("recipientName", val)}
-                onFocus={handleEditorFocus}
-                onBlur={handleEditorBlur}
-              />
-              ,
-            </p>
-
             {/* Body */}
             <article className="mt-6 text-sm leading-7 space-y-4 flex-grow">
               {letterContent.bodyParagraphs.map((p, i) => (
