@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { EditableField } from "./components/EditableField";
 import { CompanyLogo } from "./components/CompanyLogo";
-import { PrintIcon } from "./components/Icons";
+import { BoldIcon, PrintIcon } from "./components/Icons";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 
@@ -14,9 +14,15 @@ interface LetterContent {
   senderName: string;
   senderSignature: string;
   senderTitle: string;
+  senderPhone: string;
+  senderEmail: string;
+  companyAddress: string;
+  companyPhone: string;
+  companyEmail: string;
 }
 
 const App: React.FC = () => {
+  const [signatureScale, setSignatureScale] = useState(1);
   const [letterContent, setLetterContent] = useState<LetterContent>({
     recipientName: "Kashif Ali",
     recipientTitle: "Lead Frontend Developer",
@@ -27,14 +33,25 @@ const App: React.FC = () => {
       day: "numeric",
     }),
     bodyParagraphs: [
-      "This is to formally confirm that <strong>Kashif Ali</strong> was employed at <strong>Jazee-Automation</strong> as a <strong>Lead Front-End Developer</strong> from <strong>March 2024</strong> to <strong>December 2025</strong>. During his tenure, he played a key role in the modernization of our company’s CRM Finance system, leading the transition from a legacy desktop application to a modern web-based solution using React.js. He also collaborated closely with the backend team during the migration from Java to Python, ensuring seamless system integration.",
+      "This is to formally confirm that <strong>Kashif Ali</strong> was employed at <strong>Jazee-Automation</strong> as a <strong>Lead Front-End Developer</strong> from <strong>March 2024</strong> to <strong>March 2026</strong>. During his tenure, he played a key role in the modernization of our company’s CRM Finance system, leading the transition from a legacy desktop application to a modern web-based solution using React.js. He also collaborated closely with the backend team during the migration from Java to Python, ensuring seamless system integration.",
       "He was responsible for the overall front-end architecture and implementation, focusing on creating a responsive and efficient user experience. His technical expertise and leadership contributed significantly to improving system performance and business productivity. Throughout his service, he consistently demonstrated professionalism, strong analytical ability, and a high level of technical competence.",
       "He has been an asset to our organization, and we wish him continued success in his professional career.",
     ],
     senderName: "Muhammad Talha bin Ijaz",
     senderSignature: null, // Initial state is null, no signature uploaded
     senderTitle: "CEO & Manager",
+    senderPhone: "P: (039) 391-348-1194",
+    senderEmail: "E: talhaijaz@jazeeautomation.com ",
+    companyAddress: "Viale Molise, 57, 20137 Milan, Italy",
+    companyPhone: "P: (039) 391-348-1194",
+    companyEmail: "E: info@jazeeautomation.com",
   });
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [signatureOption, setSignatureOption] = useState<"digital" | "manual">(
+    "digital"
+  );
+  const blurTimeoutRef = useRef<number | null>(null);
 
   const handleContentChange = <K extends keyof LetterContent>(
     field: K,
@@ -96,9 +113,28 @@ const App: React.FC = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         handleContentChange("senderSignature", reader.result as string);
+        setSignatureScale(1); // Reset scale on new upload
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleEditorFocus = () => {
+    if (blurTimeoutRef.current) {
+      clearTimeout(blurTimeoutRef.current);
+    }
+    setIsEditing(true);
+  };
+
+  const handleEditorBlur = () => {
+    // Delay hiding the toolbar to allow clicks on it
+    blurTimeoutRef.current = window.setTimeout(() => {
+      setIsEditing(false);
+    }, 200);
+  };
+
+  const handleBoldClick = () => {
+    document.execCommand("bold");
   };
 
   return (
@@ -108,12 +144,45 @@ const App: React.FC = () => {
           Experience Letter Generator
         </h1>
         <p className="text-gray-600 mt-1">
-          Click on any text below to edit the content. Use the print button to
-          generate a PDF.
+          Click on any text below to edit the content. You can also upload and
+          resize a signature image.
         </p>
       </header>
 
-      <div className="w-full max-w-4xl flex justify-end mb-4 print:hidden">
+      <div className="w-full max-w-4xl flex justify-end items-center gap-2 mb-4 print:hidden">
+        <div className="flex items-center gap-2 mt-4 print:hidden">
+          <button
+            onClick={() => setSignatureOption("digital")}
+            className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+              signatureOption === "digital"
+                ? "bg-[#ef782a] text-white shadow"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
+          >
+            Digital Signature
+          </button>
+          <button
+            onClick={() => setSignatureOption("manual")}
+            className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+              signatureOption === "manual"
+                ? "bg-[#ef782a] text-white shadow"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
+          >
+            Manual Signature
+          </button>
+        </div>
+        {isEditing && (
+          <button
+            onClick={handleBoldClick}
+            onMouseDown={(e) => e.preventDefault()} // Prevents the editor from losing focus
+            className="bg-gray-600 text-white font-bold p-2 rounded-lg hover:bg-gray-700 transition-all duration-200"
+            aria-label="Bold"
+            title="Bold (Ctrl+B)"
+          >
+            <BoldIcon className="w-6 h-6" />
+          </button>
+        )}
         <button
           onClick={handleGeneratePdf}
           id="pdf-button" // ID for hiding/showing
@@ -137,7 +206,18 @@ const App: React.FC = () => {
         <div className="relative z-20 p-16 h-full flex flex-col">
           {/* Header */}
           <header className="flex justify-between items-start border-b pb-8 border-gray-200">
-            <CompanyLogo />
+            <CompanyLogo
+              address={letterContent.companyAddress}
+              phone={letterContent.companyPhone}
+              email={letterContent.companyEmail}
+              onAddressChange={(val) =>
+                handleContentChange("companyAddress", val)
+              }
+              onPhoneChange={(val) => handleContentChange("companyPhone", val)}
+              onEmailChange={(val) => handleContentChange("companyEmail", val)}
+              onFocus={handleEditorFocus}
+              onBlur={handleEditorBlur}
+            />
           </header>
 
           {/* Recipient & Date */}
@@ -148,14 +228,20 @@ const App: React.FC = () => {
                 html={letterContent.recipientName}
                 onChange={(val) => handleContentChange("recipientName", val)}
                 className="font-bold text-base"
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
               />
               <EditableField
                 html={letterContent.recipientTitle}
                 onChange={(val) => handleContentChange("recipientTitle", val)}
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
               />
               <EditableField
                 html={letterContent.recipientAddress}
                 onChange={(val) => handleContentChange("recipientAddress", val)}
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
               />
             </div>
             <div className="text-sm">
@@ -163,6 +249,8 @@ const App: React.FC = () => {
                 html={letterContent.date}
                 onChange={(val) => handleContentChange("date", val)}
                 className="font-bold"
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
               />
             </div>
           </section>
@@ -173,6 +261,8 @@ const App: React.FC = () => {
               tagName="span"
               html={letterContent.recipientName}
               onChange={(val) => handleContentChange("recipientName", val)}
+              onFocus={handleEditorFocus}
+              onBlur={handleEditorBlur}
             />
             ,
           </p>
@@ -185,6 +275,8 @@ const App: React.FC = () => {
                 tagName="p"
                 html={p}
                 onChange={(val) => handleParagraphChange(i, val)}
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
               />
             ))}
           </article>
@@ -192,54 +284,82 @@ const App: React.FC = () => {
           {/* Footer/Signature */}
           <footer className="mt-12">
             <p>Regards,</p>
-            <div
-              className={`mt-4 h-16 w-48 cursor-pointer transition-colors ${
-                !letterContent.senderSignature
-                  ? "border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50"
-                  : ""
-              }`}
-              onClick={() => signatureInputRef.current?.click()}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ")
-                  signatureInputRef.current?.click();
-              }}
-              aria-label={
-                letterContent.senderSignature
-                  ? "Change signature image"
-                  : "Upload signature image"
-              }
-            >
-              <input
-                type="file"
-                ref={signatureInputRef}
-                onChange={handleSignatureUpload}
-                accept="image/*"
-                className="hidden"
-              />
-              {letterContent.senderSignature ? (
-                <img
-                  src={letterContent.senderSignature}
-                  alt="Sender's signature"
-                  className="max-h-full max-w-full object-contain"
+
+            {signatureOption === "digital" ? (
+              <div
+                className={`mt-2 h-16 w-48 cursor-pointer transition-colors ${
+                  !letterContent.senderSignature
+                    ? "border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center hover:bg-gray-50"
+                    : ""
+                }`}
+                onClick={() => signatureInputRef.current?.click()}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ")
+                    signatureInputRef.current?.click();
+                }}
+                aria-label={
+                  letterContent.senderSignature
+                    ? "Change signature image"
+                    : "Upload signature image"
+                }
+              >
+                <input
+                  type="file"
+                  ref={signatureInputRef}
+                  onChange={handleSignatureUpload}
+                  accept="image/*"
+                  className="hidden"
                 />
-              ) : (
-                <span className="text-gray-500 text-sm px-2 text-center">
-                  Click to upload signature
-                </span>
-              )}
-            </div>
+                {letterContent.senderSignature ? (
+                  <img
+                    src={letterContent.senderSignature}
+                    alt="Sender's signature"
+                    className="max-h-full max-w-full object-contain"
+                  />
+                ) : (
+                  <span className="text-gray-500 text-sm px-2 text-center">
+                    Click to upload signature
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="mt-2 h-16 w-48 flex items-center justify-center">
+                <span className="text-gray-500 text-sm px-2 text-center print:hidden italic"></span>
+              </div>
+            )}
+
             <EditableField
               html={letterContent.senderName}
               onChange={(val) => handleContentChange("senderName", val)}
               className="font-bold mt-2"
+              onFocus={handleEditorFocus}
+              onBlur={handleEditorBlur}
             />
             <EditableField
               html={letterContent.senderTitle}
               onChange={(val) => handleContentChange("senderTitle", val)}
               className="text-sm"
+              onFocus={handleEditorFocus}
+              onBlur={handleEditorBlur}
             />
+            <div className="flex items-center gap-4 mt-2 text-xs text-gray-600">
+              <EditableField
+                html={letterContent.senderPhone}
+                onChange={(val) => handleContentChange("senderPhone", val)}
+                className="m-0 p-0"
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
+              />
+              <EditableField
+                html={letterContent.senderEmail}
+                onChange={(val) => handleContentChange("senderEmail", val)}
+                className="m-0 p-0"
+                onFocus={handleEditorFocus}
+                onBlur={handleEditorBlur}
+              />
+            </div>
           </footer>
         </div>
       </main>
