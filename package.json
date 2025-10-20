@@ -1,14 +1,18 @@
 {
   "name": "experience-letter-generator",
+  "homepage": "https://jaxkashif34.github.io/experience-letter-generator",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "gh-pages": "^6.3.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "react": "^19.2.0",
